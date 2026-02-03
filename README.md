@@ -3,4 +3,4 @@ Herramienta de monitoreo de servidores integrada a home assistant
 
 
 requiere instalacion de
-pip install wmi psutil python-dotenv paho-mqtt
+pip install wmi psutil python-dotenv paho-mqtt requests
