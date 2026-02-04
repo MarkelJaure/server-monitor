@@ -28,7 +28,7 @@ client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("MQTT state conectado:", reason_code)
+    print("MQTT state conectado (1):", reason_code)
 
 client.on_connect = on_connect
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
