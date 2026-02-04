@@ -16,7 +16,7 @@ load_dotenv()
 # ===== CONFIGURACIÓN =====
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-MQTT_TOPIC = os.getenv("MQTT_TOPIC")
+MQTT_TOPIC = os.getenv("MQTT_STATE_TOPIC")
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
@@ -28,7 +28,7 @@ client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("MQTT conectado:", reason_code)
+    print("MQTT state conectado:", reason_code)
 
 client.on_connect = on_connect
 client.connect(MQTT_BROKER, MQTT_PORT, 60)

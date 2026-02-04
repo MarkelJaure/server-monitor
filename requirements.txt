@@ -1,0 +1,4 @@
+psutil
+wmi
+paho-mqtt
+python-dotenv
