@@ -158,7 +158,6 @@ while True:
             "hostname": platform.node(),
             "ip": get_ip(),
             "uptime_sec": int(time.time() - psutil.boot_time()),
-            "load_avg": psutil.getloadavg(),
             "os": platform.system(),
             "arch": platform.machine(),
         },

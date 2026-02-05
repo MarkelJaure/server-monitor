@@ -54,7 +54,7 @@ def publish_updater_status(
 
 
 REPO_API = "https://api.github.com/repos/MarkelJaure/server-monitor/releases/latest"
-CHECK_INTERVAL = 10  # segundos
+CHECK_INTERVAL = 600  # segundos
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MONITOR_DIR = os.path.join(BASE_DIR, "monitor")
@@ -138,11 +138,10 @@ if __name__ == "__main__":
 
     while True:
         time.sleep(CHECK_INTERVAL)
+        local = get_local_version()
 
         try:
-            local = get_local_version()
             remote, zip_url = get_remote_release()
-            print("Voy a leer las versiones")
             if remote != local:
 
                 publish_updater_status(
@@ -158,7 +157,9 @@ if __name__ == "__main__":
 
                 publish_updater_status(
                     status="updating",
-                    message="Actualizando archivos"
+                    message="Actualizando archivos",
+                    current_version=local,
+                    new_version=remote
                 )
 
                 download_and_update(zip_url, remote)
@@ -169,6 +170,12 @@ if __name__ == "__main__":
                     message="Actualización completa",
                     current_version=remote
                 )
+            else:
+                publish_updater_status(
+                    status="success",
+                    message="Ultima versions",
+                    current_version=remote
+                )
 
         except Exception as e:
             print("Error en updater:", e)
@@ -176,4 +183,5 @@ if __name__ == "__main__":
             publish_updater_status(
                 status="error",
                 message=str(e),
+                current_version=local
             )
