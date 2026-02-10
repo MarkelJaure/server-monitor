@@ -12,25 +12,94 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 # ===== CONFIGURACIÓN =====
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-MQTT_TOPIC = os.getenv("MQTT_STATE_TOPIC")
+
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
+MQTT_STATE_TOPIC = os.getenv("MQTT_SERVER") + '/state'
+MQTT_ACTION_TOPIC = os.getenv("MQTT_SERVER") + '/action'
+MQTT_ACTION_RESULT_TOPIC = os.getenv("MQTT_SERVER") + '/action/result'
 
-PUBLISH_INTERVAL = int(os.getenv("PUBLISH_INTERVAL", 30))
+PUBLISH_INTERVAL = 30
 
 # ===== MQTT =====
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("MQTT state conectado (2):", reason_code)
+    print("MQTT state conectado:", reason_code)
+    client.subscribe(MQTT_ACTION_TOPIC)
+    print ("MQTT Suscrito al topico:", MQTT_ACTION_TOPIC)
+
+def publish_action_result(action, status, message):
+    payload = {
+        "hostname": platform.node(),
+        "action": action,
+        "status": status,
+        "message": message,
+        "timestamp": int(time.time())
+    }
+    client.publish(MQTT_ACTION_RESULT_TOPIC, json.dumps(payload), retain=False)
+
+ACTION_MAP = {
+    "shutdown": {
+        "command": "shutdown /s /t 5",
+        "message": "Apagado del servidor iniciado"
+    },
+    "reboot": {
+        "command": "shutdown /r /t 5",
+        "message": "Reinicio del servidor iniciado"
+    },
+    "cancel_shutdown": {
+        "command": "shutdown /a",
+        "message": "Apagado/reinicio cancelado"
+    }
+}
+
+
+def on_message(client, userdata, msg):
+    action = msg.payload.decode().lower()
+    print("Accion recibida:", action)
+
+    if action not in ACTION_MAP:
+        publish_action_result(
+            action,
+            "error",
+            "Acción no reconocida"
+        )
+        return
+
+    action_data = ACTION_MAP[action]
+
+    publish_action_result(
+        action,
+        "accepted",
+        f"Orden recibida: {action_data['message']}"
+    )
+
+    try:
+        os.system(action_data["command"])
+
+        publish_action_result(
+            action,
+            "executing",
+            action_data["message"]
+        )
+
+    except Exception as e:
+        publish_action_result(
+            action,
+            "failed",
+            f"Error ejecutando acción: {str(e)}"
+        )
+
 
 client.on_connect = on_connect
+client.on_message = on_message
+
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
 client.loop_start()
 
@@ -179,7 +248,7 @@ while True:
     }
 
     print("Publicado:", payload)
-    client.publish(MQTT_TOPIC, json.dumps(payload), retain=True)
+    client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
     time.sleep(PUBLISH_INTERVAL)
 
 

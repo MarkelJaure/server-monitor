@@ -18,7 +18,7 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-MQTT_TOPIC = os.getenv("MQTT_UPDATE_TOPIC")
+MQTT_TOPIC = os.getenv("MQTT_SERVER") + '/update/state'
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 

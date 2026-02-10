@@ -11,6 +11,10 @@ pip install wmi psutil python-dotenv paho-mqtt requests
 
 1. Ingresar al servidor con credenciales de administrador
 2. Copiar el instalador de Python a la carpeta `Descargas`
+3. En caso de estar agregando un nuevo cliente/buque
+   1. En Mosquitto hay que agregar los permisos del nuevo usuario MQTT al nuevo topico `mosquitto/config/aclfile`
+   2. Hay que crear el usuario `docker exec -it mosquitto mosquitto_passwd /mosquitto/config/passwords {NOMBRE}`
+   3. Reiniciar el Contenedor de Mosquitto con Portainer
 
 ---
 
