@@ -67,7 +67,7 @@ pip install wmi psutil python-dotenv paho-mqtt requests
 ### 3.2 Configurar Archivos
 
 1. Copiar la carpeta `server-monitor` al **Escritorio**
-2. Abrir el archivo `.env` y modificar `MQTT_STATE_TOPIC` y `MQTT_UPDATE_TOPIC` agregando el nombre del servidor
+2. Abrir el archivo `.env` y modificar `MQTT_SERVER` agregando el nombre del servidor
 3. Mover la carpeta `server-monitor` a:
    ```
    C:\Program Files\Python314\Programs\
