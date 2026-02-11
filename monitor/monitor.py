@@ -34,6 +34,12 @@ def on_connect(client, userdata, flags, reason_code, properties):
     client.subscribe(MQTT_ACTION_TOPIC)
     print ("MQTT Suscrito al topico:", MQTT_ACTION_TOPIC)
 
+    publish_action_result(
+        'connection',
+        "connected",
+        f"Servidor MQTT Conectado"
+    )
+
 def publish_action_result(action, status, message):
     payload = {
         "hostname": platform.node(),
@@ -47,11 +53,11 @@ def publish_action_result(action, status, message):
 ACTION_MAP = {
     "shutdown": {
         "command": "shutdown /s /t 5",
-        "message": "Apagado del servidor iniciado"
+        "message": "Apagado del servidor"
     },
     "reboot": {
         "command": "shutdown /r /t 5",
-        "message": "Reinicio del servidor iniciado"
+        "message": "Reinicio del servidor"
     },
     "cancel_shutdown": {
         "command": "shutdown /a",
@@ -77,7 +83,7 @@ def on_message(client, userdata, msg):
     publish_action_result(
         action,
         "accepted",
-        f"Orden recibida: {action_data['message']}"
+        f"Orden recibida: {action}"
     )
 
     try:
@@ -85,8 +91,8 @@ def on_message(client, userdata, msg):
 
         publish_action_result(
             action,
-            "executing",
-            action_data["message"]
+            "executed",
+            f"Orden ejecutada: {action}"
         )
 
     except Exception as e:
@@ -247,7 +253,7 @@ while True:
         "disks": get_disks_info()
     }
 
-    print("Publicado:", payload)
+    print("Publicado:", MQTT_STATE_TOPIC)
     client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
     time.sleep(PUBLISH_INTERVAL)
 
