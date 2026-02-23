@@ -133,3 +133,27 @@ pip install wmi psutil python-dotenv paho-mqtt requests
 
 ---
 
+
+Como activar Wake on LAN en un servidor
+
+Si la maquina es Beelink Mini-pc
+Administrador de Dispositivos
+Buscar la placa de red por al que esta conectada (Ethernet o wifi)
+Administración de energía
+Check en 
+Permitir que este dispositivo reactive el equipo
+Permitirsolo un magic packer para reactivar el equipo
+
+Ingresar al Mikrotik del router que en el que esta conectado el servidor
+IP -> Services
+Habilitar www
+
+En el home assistant:
+Abrir el configuration.yaml
+Agregar un rest_command con:
+- La ip del MK
+- credenciales del winbox
+- MAC del servidor a prender
+Abrir el scripts.yaml
+Crear un script que ejecute el rest command y agregue un mensaje MQTT en el topico del servidor
+
