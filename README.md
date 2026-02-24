@@ -157,3 +157,11 @@ Agregar un rest_command con:
 Abrir el scripts.yaml
 Crear un script que ejecute el rest command y agregue un mensaje MQTT en el topico del servidor
 
+En el mikrotik del barco:
+IP -> Firewall -> Filter Rules
+Agregar una rule
+Chain: Input
+Src. Address List IPs: Compulab
+In. Interface List: WAN
+Action: Accept
+
