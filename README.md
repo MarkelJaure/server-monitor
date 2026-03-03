@@ -134,3 +134,54 @@ pip install wmi psutil python-dotenv paho-mqtt requests && pip install --pre pyt
 
 ---
 
+
+# Activación de Wake on LAN (WOL) en un Servidor
+
+
+---
+
+## 1. Configuración del Servidor (Beelink Mini-PC)
+
+1. Abrir **Administrador de Dispositivos** en Windows.
+2. Buscar la **placa de red** conectada (Ethernet o Wi-Fi).
+3. Hacer clic derecho → **Propiedades** → pestaña **Administración de energía**.
+4. Marcar las siguientes opciones:
+   - [x] Permitir que este dispositivo reactive el equipo
+   - [x] Permitir solo un paquete mágico para reactivar el equipo
+5. Guardar los cambios.
+
+---
+
+## 2. Configuración del Router Mikrotik del Servidor
+
+1. Acceder al **Mikrotik** donde está conectado el servidor.
+2. Navegar a **IP → Services**.
+3. Habilitar **www** para poder recibir solicitudes REST desde Home Assistant.
+
+---
+
+En el home assistant:
+Abrir el configuration.yaml
+Agregar un rest_command con:
+- La ip del MK
+- credenciales del winbox
+- MAC del servidor a prender
+Abrir el scripts.yaml
+Crear un script que ejecute el rest command y agregue un mensaje MQTT en el topico del servidor
+
+---
+
+## 4. Configuración del Mikrotik en el Barco
+
+Para permitir que las solicitudes WOL lleguen al servidor desde el exterior:
+
+1. Navegar a **IP → Firewall → Filter Rules.**
+2. Crear una nueva regla:
+   - **Chain**: Input
+   - **Src. Address List**: IPs autorizadas (ej. Compulab)
+   - **In. Interface List**: WAN
+   - **Action**: Accept
+3. Guardar
+
+> ⚠️ Nota: Esto asegura que solo las IPs autorizadas puedan enviar paquetes WOL al servidor.
+
