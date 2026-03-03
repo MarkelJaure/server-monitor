@@ -50,7 +50,8 @@ python --version
 Instalar las dependencias requeridas:
 
 ```bash
-pip install wmi psutil python-dotenv paho-mqtt requests
+pip install wmi psutil python-dotenv paho-mqtt requests && pip install --pre pythonnet==3.1.0-rc0
+
 ```
 
 ---

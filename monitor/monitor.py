@@ -9,6 +9,28 @@ from datetime import datetime
 import win32api
 import os
 from dotenv import load_dotenv
+# ======= Inicialización segura de LibreHardwareMonitor =======
+try:
+    import clr
+    import sys
+    import os
+
+    dll_path = os.path.abspath(".")
+    sys.path.append(dll_path)
+    clr.AddReference("LibreHardwareMonitorLib")
+
+    from LibreHardwareMonitor.Hardware import Computer
+
+    computer = Computer()
+    computer.IsCpuEnabled = True
+    computer.Open()
+
+    LIB_MONITOR_OK = True  # marca que LibreHardwareMonitor está listo
+except Exception as e:
+    print("⚠️ No se pudo inicializar LibreHardwareMonitor:", e)
+    computer = None
+    LIB_MONITOR_OK = False
+
 
 load_dotenv()
 
@@ -23,7 +45,7 @@ MQTT_STATE_TOPIC = os.getenv("MQTT_SERVER") + '/state'
 MQTT_ACTION_TOPIC = os.getenv("MQTT_SERVER") + '/action'
 MQTT_ACTION_RESULT_TOPIC = os.getenv("MQTT_SERVER") + '/action/result'
 
-PUBLISH_INTERVAL = 30
+PUBLISH_INTERVAL = 2
 
 # ===== MQTT =====
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -111,23 +133,38 @@ client.loop_start()
 
 w = wmi.WMI(namespace="root\\wmi")
 
-def get_cpu_temperature():
-    """
-    Devuelve temperatura CPU en °C usando ACPI (WMI)
-    """
+def update_hardware(hw):
     try:
-        temps = w.MSAcpi_ThermalZoneTemperature()
-        if not temps:
-            return None
+        hw.Update()
+        for sub in hw.SubHardware:
+            update_hardware(sub)
+    except:
+        pass  # ignorar errores de hardware
 
-        # ACPI devuelve décimas de Kelvin
-        temp_k = temps[0].CurrentTemperature
-        temp_c = (temp_k / 10.0) - 273.15
-        return round(temp_c, 1)
+def get_cpu_temperature():
+    if not LIB_MONITOR_OK or computer is None:
+        return None  # si pythonnet o DLL no funcionan
 
+    try:
+        for hardware in computer.Hardware:
+            update_hardware(hardware)
+
+            if hardware.HardwareType.ToString() == "Cpu":
+                for sensor in hardware.Sensors:
+                    if (
+                        sensor.SensorType.ToString() == "Temperature"
+                        and "Package" in sensor.Name
+                        and sensor.Value is not None
+                    ):
+                        print(sensor.Value)
+                        return sensor.Value
     except Exception as e:
-        print("Error leyendo temperatura:", e)
+        print("⚠️ Error leyendo temperatura CPU:", e)
         return None
+
+    return None  # si no encuentra sensor
+
+
 
 def get_ip():
     try:
