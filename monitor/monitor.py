@@ -27,7 +27,6 @@ try:
 
     LIB_MONITOR_OK = True  # marca que LibreHardwareMonitor está listo
 except Exception as e:
-    print("⚠️ No se pudo inicializar LibreHardwareMonitor:", e)
     computer = None
     LIB_MONITOR_OK = False
 
@@ -156,10 +155,8 @@ def get_cpu_temperature():
                         and "Package" in sensor.Name
                         and sensor.Value is not None
                     ):
-                        print(sensor.Value)
                         return sensor.Value
     except Exception as e:
-        print("⚠️ Error leyendo temperatura CPU:", e)
         return None
 
     return None  # si no encuentra sensor
