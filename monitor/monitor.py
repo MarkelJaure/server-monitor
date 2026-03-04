@@ -44,7 +44,7 @@ MQTT_STATE_TOPIC = os.getenv("MQTT_SERVER") + '/state'
 MQTT_ACTION_TOPIC = os.getenv("MQTT_SERVER") + '/action'
 MQTT_ACTION_RESULT_TOPIC = os.getenv("MQTT_SERVER") + '/action/result'
 
-PUBLISH_INTERVAL = 2
+PUBLISH_INTERVAL = 30
 
 # ===== MQTT =====
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)

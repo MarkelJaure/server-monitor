@@ -173,7 +173,7 @@ if __name__ == "__main__":
             else:
                 publish_updater_status(
                     status="success",
-                    message="Ultima versions",
+                    message="Ultima version",
                     current_version=remote
                 )
 
