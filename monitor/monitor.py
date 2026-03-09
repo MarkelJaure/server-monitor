@@ -257,38 +257,41 @@ def get_disks_info():
 
 
 while True:
-    cpu_temp = get_cpu_temperature()
+    try:
+        cpu_temp = get_cpu_temperature()
 
-    mem = psutil.virtual_memory()
-    net = psutil.net_io_counters()
+        mem = psutil.virtual_memory()
+        net = psutil.net_io_counters()
 
-    payload = {
-        "system": {
-            "hostname": platform.node(),
-            "ip": get_ip(),
-            "uptime_sec": int(time.time() - psutil.boot_time()),
-            "os": platform.system(),
-            "arch": platform.machine(),
-        },
-        "cpu": {
-            "usage_percent": psutil.cpu_percent(),
-            "freq_mhz": psutil.cpu_freq().current if psutil.cpu_freq() else None,
-            "cores": psutil.cpu_count(),
-            "temperature": cpu_temp,
-        },
-        "memory": {
-            "used_percent": mem.percent,
-            "used_gb": round(mem.used / 1024 / 1024 / 1024, 1),
-            "total_gb": round(mem.total / 1024 / 1024 / 1024, 1),
-        },
-        "timestamp": int(time.time()),
-        "interval_sec": PUBLISH_INTERVAL,
-        "vms": get_hyperv_vms(),
-        "disks": get_disks_info()
-    }
+        payload = {
+            "system": {
+                "hostname": platform.node(),
+                "ip": get_ip(),
+                "uptime_sec": int(time.time() - psutil.boot_time()),
+                "os": platform.system(),
+                "arch": platform.machine(),
+            },
+            "cpu": {
+                "usage_percent": psutil.cpu_percent(),
+                "freq_mhz": psutil.cpu_freq().current if psutil.cpu_freq() else None,
+                "cores": psutil.cpu_count(),
+                "temperature": cpu_temp,
+            },
+            "memory": {
+                "used_percent": mem.percent,
+                "used_gb": round(mem.used / 1024 / 1024 / 1024, 1),
+                "total_gb": round(mem.total / 1024 / 1024 / 1024, 1),
+            },
+            "timestamp": int(time.time()),
+            "interval_sec": PUBLISH_INTERVAL,
+            "vms": get_hyperv_vms(),
+            "disks": get_disks_info()
+        }
 
-    print("Publicado:", MQTT_STATE_TOPIC)
-    client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
+        print("Publicado:", MQTT_STATE_TOPIC)
+        client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
+    except Exception as e:
+        print("Error en ciclo principal:", e)
     time.sleep(PUBLISH_INTERVAL)
 
 
