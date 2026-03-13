@@ -9,6 +9,21 @@ from datetime import datetime
 import win32api
 import os
 from dotenv import load_dotenv
+import logging
+
+# ===== LOGGER =====
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(BASE_DIR, "server-monitor.log")
+
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logger = logging.getLogger()
 # ======= Inicialización segura de LibreHardwareMonitor =======
 try:
     import clr
@@ -46,14 +61,37 @@ MQTT_ACTION_RESULT_TOPIC = os.getenv("MQTT_SERVER") + '/action/result'
 
 PUBLISH_INTERVAL = 30
 
+
+def wait_for_network(timeout=300):
+    logger.info("Esperando conectividad de red...")
+
+    start = time.time()
+
+    while True:
+        try:
+            socket.create_connection(("8.8.8.8", 53), timeout=3)
+            logger.info("Red disponible")
+            return True
+        except OSError:
+            pass
+
+        if time.time() - start > timeout:
+            logger.warning("Timeout esperando red")
+            return False
+
+        time.sleep(5)
+
+wait_for_network()
+
 # ===== MQTT =====
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("MQTT state conectado:", reason_code)
+    logger.info(f"MQTT conectado. reason_code={reason_code}")
     client.subscribe(MQTT_ACTION_TOPIC)
-    print ("MQTT Suscrito al topico:", MQTT_ACTION_TOPIC)
+    logger.info(f"Suscrito al topico MQTT: {MQTT_ACTION_TOPIC}")
 
     publish_action_result(
         'connection',
@@ -89,7 +127,7 @@ ACTION_MAP = {
 
 def on_message(client, userdata, msg):
     action = msg.payload.decode().lower()
-    print("Accion recibida:", action)
+    logger.info(f"Acción recibida MQTT: {action}")
 
     if action not in ACTION_MAP:
         publish_action_result(
@@ -127,7 +165,18 @@ def on_message(client, userdata, msg):
 client.on_connect = on_connect
 client.on_message = on_message
 
-client.connect(MQTT_BROKER, MQTT_PORT, 60)
+def connect_mqtt():
+    while True:
+        try:
+            logger.info("Intentando conectar a MQTT...")
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            logger.info("Conectado a MQTT")
+            return
+        except Exception as e:
+            logger.warning(f"MQTT no disponible, reintentando en 10s: {e}")
+            time.sleep(10)
+
+connect_mqtt()
 client.loop_start()
 
 w = wmi.WMI(namespace="root\\wmi")
@@ -221,7 +270,7 @@ def get_hyperv_vms():
             vms_info.append(vm_data)
 
     except Exception as e:
-        print("Error obteniendo VMs Hyper-V:", e)
+        logger.error(f"Error obteniendo VMs Hyper-V: {e}")
 
     return vms_info
 
@@ -288,10 +337,10 @@ while True:
             "disks": get_disks_info()
         }
 
-        print("Publicado:", MQTT_STATE_TOPIC)
+        logger.info(f"Estado publicado en {MQTT_STATE_TOPIC}")
         client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
     except Exception as e:
-        print("Error en ciclo principal:", e)
+        logger.exception("Error en ciclo principal")
     time.sleep(PUBLISH_INTERVAL)
 
 
