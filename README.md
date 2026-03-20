@@ -1,9 +1,12 @@
 # server-monitor
-Herramienta de monitoreo de servidores integrada a home assistant
+Server Monitor es una herramienta diseñada para funcionar en segundo plano en los servidores que se desean monitorear desde compulab. Permite acceder a informacion del hardwar asi como ejecutar acciones simples de manera remota (prender, apagar y reiniciar). Funciona ejecutando un programa python en segundo plano que envia informacion por MQTT de manera periodica y escucha en un topico por si llega alguna orden a ejecutar.
 
+| Parte | Ubicación | Función / Descripción |
+|-------|-----------|--------------------|
+| **Servidor** | Servidor físico/virtual a monitorear | Ejecuta **Server Monitor**, que recolecta información de hardware, publica datos y escucha comandos remotos (prender, apagar, reiniciar). |
+| **Broker MQTT** | Raspberry Pi | Actúa como **centro de información**, recibe los datos del servidor y distribuye las órdenes entre el servidor y Home Assistant. |
+| **Home Assistant** | Raspberry Pi | Interfaz para el usuario: muestra información de los servidores y permite enviar órdenes (acciones) a los servidores vía MQTT. |
 
-requiere instalacion de
-pip install wmi psutil python-dotenv paho-mqtt requests
 
 # Guia de Instalacion - Sistema de Monitoreo de Servidor
 
