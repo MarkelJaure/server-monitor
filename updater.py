@@ -11,6 +11,23 @@ from pathlib import Path
 import os
 import paho.mqtt.client as mqtt
 import json
+import logging
+import socket
+
+
+# ===== LOGGER =====
+BASE_LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "monitor")
+LOG_FILE = os.path.join(BASE_LOG_DIR, "server-monitor.log")
+
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logger = logging.getLogger()
 
 
 ENV_PATH = Path(__file__).parent / "monitor" / ".env"
@@ -22,14 +39,49 @@ MQTT_TOPIC = os.getenv("MQTT_SERVER") + '/update/state'
 MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
+def wait_for_network(timeout=300):
+    logger.info("Esperando conectividad de red (updater)...")
+
+    start = time.time()
+
+    while True:
+        try:
+            socket.create_connection(("8.8.8.8", 53), timeout=3)
+            logger.info("Red disponible (updater)")
+            return True
+        except OSError:
+            pass
+
+        if time.time() - start > timeout:
+            logger.warning("Timeout esperando red (updater)")
+            return False
+
+        time.sleep(5)
+
+wait_for_network()
+
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    print("MQTT updater conectado:", reason_code)
+    logger.info(f"MQTT updater conectado: {reason_code}")
 
 client.on_connect = on_connect
-client.connect(MQTT_BROKER, MQTT_PORT, 60)
+
+def connect_mqtt():
+    while True:
+        try:
+            logger.info("Intentando conectar a MQTT (updater)...")
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            logger.info("Conectado a MQTT (updater)")
+            return
+        except Exception as e:
+            logger.warning(f"MQTT updater no disponible, reintentando en 10s: {e}")
+            time.sleep(10)
+
+
+connect_mqtt()
 client.loop_start()
 
 def publish_updater_status(
@@ -80,7 +132,7 @@ def get_remote_release():
 
 
 def download_and_update(zip_url, new_version):
-    print("Descargando actualización...")
+    logger.info("Descargando actualización...")
 
     tmp_dir = tempfile.mkdtemp()
     zip_path = os.path.join(tmp_dir, "update.zip")
@@ -121,11 +173,11 @@ def download_and_update(zip_url, new_version):
         f.write(new_version)
 
     shutil.rmtree(tmp_dir)
-    print("Actualización aplicada correctamente")
+    logger.info("Actualización aplicada correctamente")
 
 
 def start_monitor():
-    print("Iniciando monitor...")
+    logger.info("Iniciando monitor...")
     return subprocess.Popen(
         [sys.executable, MONITOR_SCRIPT],
         cwd=MONITOR_DIR
@@ -133,7 +185,7 @@ def start_monitor():
 
 
 if __name__ == "__main__":
-    print("Updater iniciado")
+    logger.info("Updater iniciado")
     monitor = start_monitor()
 
     while True:
@@ -151,7 +203,7 @@ if __name__ == "__main__":
                     new_version=remote
                 )
 
-                print(f"Nueva versión detectada: {remote}")
+                logger.info(f"Nueva versión detectada: {remote}")
                 monitor.terminate()
                 monitor.wait()
 
@@ -178,7 +230,7 @@ if __name__ == "__main__":
                 )
 
         except Exception as e:
-            print("Error en updater:", e)
+            logger.error(f"Error en updater: {e}")
 
             publish_updater_status(
                 status="error",

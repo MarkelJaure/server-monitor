@@ -63,20 +63,20 @@ PUBLISH_INTERVAL = 30
 
 
 def wait_for_network(timeout=300):
-    logger.info("Esperando conectividad de red...")
+    logger.info("Esperando conectividad de red (monitor)...")
 
     start = time.time()
 
     while True:
         try:
             socket.create_connection(("8.8.8.8", 53), timeout=3)
-            logger.info("Red disponible")
+            logger.info("Red disponible (monitor)")
             return True
         except OSError:
             pass
 
         if time.time() - start > timeout:
-            logger.warning("Timeout esperando red")
+            logger.warning("Timeout esperando red (monitor)")
             return False
 
         time.sleep(5)
@@ -89,7 +89,7 @@ client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
 client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 def on_connect(client, userdata, flags, reason_code, properties):
-    logger.info(f"MQTT conectado. reason_code={reason_code}")
+    logger.info(f"MQTT monitor conectado. reason_code={reason_code}")
     client.subscribe(MQTT_ACTION_TOPIC)
     logger.info(f"Suscrito al topico MQTT: {MQTT_ACTION_TOPIC}")
 
@@ -168,12 +168,12 @@ client.on_message = on_message
 def connect_mqtt():
     while True:
         try:
-            logger.info("Intentando conectar a MQTT...")
+            logger.info("Intentando conectar a MQTT (monitor)...")
             client.connect(MQTT_BROKER, MQTT_PORT, 60)
-            logger.info("Conectado a MQTT")
+            logger.info("Conectado a MQTT (monitor)")
             return
         except Exception as e:
-            logger.warning(f"MQTT no disponible, reintentando en 10s: {e}")
+            logger.warning(f"MQTT monitor no disponible, reintentando en 10s: {e}")
             time.sleep(10)
 
 connect_mqtt()
