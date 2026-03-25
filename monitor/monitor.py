@@ -10,6 +10,8 @@ import win32api
 import os
 from dotenv import load_dotenv
 import logging
+import subprocess
+import subprocess
 
 # ===== LOGGER =====
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -109,6 +111,22 @@ def publish_action_result(action, status, message):
     }
     client.publish(MQTT_ACTION_RESULT_TOPIC, json.dumps(payload), retain=False)
 
+
+
+def start_vm(payload):
+    print(payload)
+    vm_name = payload.get("vm")
+
+    if not vm_name:
+        return False, "Falta parámetro 'vm'"
+
+    command = f'powershell -ExecutionPolicy Bypass -Command "Start-VM -Name \'{vm_name}\'"'
+
+    subprocess.run(command, shell=True, check=True)
+
+    return True, f"VM iniciada: {vm_name}"
+
+
 ACTION_MAP = {
     "shutdown": {
         "command": "shutdown /s /t 5",
@@ -121,23 +139,39 @@ ACTION_MAP = {
     "cancel_shutdown": {
         "command": "shutdown /a",
         "message": "Apagado/reinicio cancelado"
+    },
+    "start_vm": {
+        "handler": start_vm,
+        "message": "Encendido de VM"
     }
 }
 
 
-def on_message(client, userdata, msg):
-    action = msg.payload.decode().lower()
-    logger.info(f"Acción recibida MQTT: {action}")
 
-    if action not in ACTION_MAP:
+def on_message(client, userdata, msg):
+    try:
+        payload = json.loads(msg.payload.decode())
+        action = payload.get("action", "").lower()
+        print(action)
+    except Exception:
         publish_action_result(
-            action,
+            "unknown",
             "error",
-            "Acción no reconocida"
+            "Payload inválido (no es JSON)"
         )
         return
 
-    action_data = ACTION_MAP[action]
+    logger.info(f"Acción recibida MQTT: {action}")
+
+    action_data = ACTION_MAP.get(action)
+
+    if not action_data:
+        publish_action_result(
+            action,
+            "error",
+            f"Acción no reconocida: {action}"
+        )
+        return
 
     publish_action_result(
         action,
@@ -146,13 +180,39 @@ def on_message(client, userdata, msg):
     )
 
     try:
-        os.system(action_data["command"])
+        # 🔹 Si tiene handler (ej: start_vm)
+        if "handler" in action_data:
+            success, message = action_data["handler"](payload)
 
-        publish_action_result(
-            action,
-            "executed",
-            f"Orden ejecutada: {action}"
-        )
+            if success:
+                publish_action_result(
+                    action,
+                    "executed",
+                    message
+                )
+            else:
+                publish_action_result(
+                    action,
+                    "failed",
+                    message
+                )
+
+        # 🔹 Acciones simples (command)
+        elif "command" in action_data:
+            subprocess.run(action_data["command"], shell=True, check=True)
+
+            publish_action_result(
+                action,
+                "executed",
+                f"Orden ejecutada: {action}"
+            )
+
+        else:
+            publish_action_result(
+                action,
+                "error",
+                "Acción mal configurada (sin command ni handler)"
+            )
 
     except Exception as e:
         publish_action_result(
