@@ -1,5 +1,5 @@
 # server-monitor
-Server Monitor es una herramienta diseñada para funcionar en segundo plano en los servidores (principalmente fisicos) que se desean monitorear desde compulab. Permite acceder a informacion del hardware asi como ejecutar acciones simples de manera remota (prender, apagar y reiniciar). Funciona ejecutando un programa python en segundo plano que envia informacion por MQTT de manera periodica y escucha en un topico por si llega alguna orden a ejecutar.
+Server Monitor es una herramienta diseñada en python para funcionar en segundo plano en los servidores (principalmente fisicos) que se desean monitorear desde compulab. Permite acceder a informacion del hardware asi como ejecutar acciones simples de manera remota (prender, apagar y reiniciar). Funciona ejecutando un programa python en segundo plano que envia informacion por MQTT de manera periodica y escucha en un topico por si llega alguna orden a ejecutar.
 
 | Parte | Ubicación | Función / Descripción |
 |-------|-----------|--------------------|
@@ -13,7 +13,7 @@ Server Monitor es una herramienta diseñada para funcionar en segundo plano en l
 ### 🧾 Logging
 - Registro de acciones relevantes tanto del **Updater** como del **Monitor**.
 - Los logs se almacenan en:
-  - `server-monitor.py`
+  - `server-monitor.log`
   - Carpeta `/monitor`
 - Permite trazabilidad de eventos, errores y ejecuciones automáticas.
 
