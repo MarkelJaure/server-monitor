@@ -46,57 +46,26 @@ Servicio principal encargado de la ejecución remota y monitoreo del servidor.
   
 ## Servidores donde esta instalado el server-monitor:
 
-1. Compulab
-   - Server-1
-   - Server-2
-   - Server-3
-   - Server-5
-   - Server-6
-   - Server-7
-   - Mark-PC
-   - Martin-PC
-2. Buques
-   - Huyu 908
-   - Huyu 961
-   - Huyu 962
-   - Hu Shun Yu 06
-   - Hu Shun Yu 07
-   - Hu Shun Yu 08
-   - Puente Valdes
-3. Clientes
-   1. San Isidro
-      - Server-1
-      - Server-2
-      - Server-3
-      - Server-4
-   2. Bricel
-      - Server-1
-   4. Cigalfer
-      - Server-1
-   6. RV Racing
-      - Server-1
-   8. Hydra
-      - Server-1
-   10. Holas
-       - Server-1
-   12. Greciamar
-       - Server-1
-   14. Santhor
-       - Server-1
-       - Server-2
-   16. La Escalerona
-       - Server-1
-   18. Altamare
-       - Server-1
-   20. Ecoprom
-       - Server-1
-   22. Seafresh
-       - Server-1
-   24. Colorshop
-       - Server-1
-   26. Fabri
-       - Server-1
-       - Server-2
+## 🌐 Servidores con `server-monitor` instalado
+
+| Categoría | Grupo / Ubicación | Servidores |
+|----------|------------------|------------|
+| Compulab | - | Server-1, Server-2, Server-3, Server-5, Server-6, Server-7, Mark-PC, Martin-PC |
+| Buques   | - | Huyu 908, Huyu 961, Huyu 962, Hu Shun Yu 06, Hu Shun Yu 07, Hu Shun Yu 08, Puente Valdes |
+| Clientes | San Isidro | Server-1, Server-2, Server-3, Server-4 |
+| Clientes | Bricel | Server-1 |
+| Clientes | Cigalfer | Server-1 |
+| Clientes | RV Racing | Server-1 |
+| Clientes | Hydra | Server-1 |
+| Clientes | Holas | Server-1 |
+| Clientes | Greciamar | Server-1 |
+| Clientes | Santhor | Server-1, Server-2 |
+| Clientes | La Escalerona | Server-1 |
+| Clientes | Altamare | Server-1 |
+| Clientes | Ecoprom | Server-1 |
+| Clientes | Seafresh | Server-1 |
+| Clientes | Colorshop | Server-1 |
+| Clientes | Fabri | Server-1, Server-2 |
 
 # Guia de Instalacion - Sistema de Monitoreo de Servidor
 
