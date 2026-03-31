@@ -288,6 +288,11 @@ STATE_MAP = {
 def get_hyperv_vms():
     vms_info = []
 
+    SKIP_VMS = os.getenv("SKIP_VMS", "false").lower() == "true"
+
+    if SKIP_VMS:
+        return vms_info
+
     try:
         c = wmi.WMI(namespace=r"root\virtualization\v2")
 
