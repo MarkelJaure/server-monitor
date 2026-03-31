@@ -146,8 +146,6 @@ ACTION_MAP = {
     }
 }
 
-
-
 def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
@@ -296,10 +294,13 @@ def get_hyperv_vms():
     try:
         c = wmi.WMI(namespace=r"root\virtualization\v2")
 
-        # SOLO máquinas virtuales (excluye el host)
-        vms = c.Msvm_ComputerSystem(Caption="Máquina virtual")
+        vms = c.Msvm_ComputerSystem()
 
         for vm in vms:
+
+            if vm.Caption not in ["Virtual Machine", "Máquina virtual"]:
+                continue
+
             # Obtener settings del sistema virtual
             settings = vm.associators(
                 wmi_result_class="Msvm_VirtualSystemSettingData"
