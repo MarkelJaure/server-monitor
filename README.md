@@ -1,5 +1,5 @@
 # server-monitor
-Server Monitor es una herramienta diseñada para funcionar en segundo plano en los servidores que se desean monitorear desde compulab. Permite acceder a informacion del hardwar asi como ejecutar acciones simples de manera remota (prender, apagar y reiniciar). Funciona ejecutando un programa python en segundo plano que envia informacion por MQTT de manera periodica y escucha en un topico por si llega alguna orden a ejecutar.
+Server Monitor es una herramienta diseñada en python para funcionar en segundo plano en los servidores (principalmente fisicos) que se desean monitorear desde compulab. Permite acceder a informacion del hardware asi como ejecutar acciones simples de manera remota (prender, apagar y reiniciar). Funciona ejecutando un programa python en segundo plano que envia informacion por MQTT de manera periodica y escucha en un topico por si llega alguna orden a ejecutar.
 
 | Parte | Ubicación | Función / Descripción |
 |-------|-----------|--------------------|
@@ -7,6 +7,65 @@ Server Monitor es una herramienta diseñada para funcionar en segundo plano en l
 | **Broker MQTT** | Raspberry Pi | Actúa como **centro de información**, recibe los datos del servidor y distribuye las órdenes entre el servidor y Home Assistant. |
 | **Home Assistant** | Raspberry Pi | Interfaz para el usuario: muestra información de los servidores y permite enviar órdenes (acciones) a los servidores vía MQTT. |
 
+
+## Funcionalidades
+
+### 🧾 Logging
+- Registro de acciones relevantes tanto del **Updater** como del **Monitor**.
+- Los logs se almacenan en:
+  - `server-monitor.log`
+  - Carpeta `/monitor`
+- Permite trazabilidad de eventos, errores y ejecuciones automáticas.
+
+### Updater
+Servicio encargado de mantener el sistema actualizado automáticamente.
+
+1. Verifica conexión a internet y establece conexión con el broker **MQTT**.
+3. Inicia un bucle infinito que:
+   1. Ejecuta `monitor.py`.
+   2. Consulta la versión local del `server-monitor`.
+   3. Compara contra la última versión disponible en el repositorio.
+   4. Si la versión remota es superior:
+      - Descarga y actualiza los archivos locales.
+      - Reinicia el `monitor.py`.
+   5. Se publica el estado de la version en `/update/state` 
+   6. Espera **10 minutos** antes de repetir el ciclo.
+
+### Monitor:
+Servicio principal encargado de la ejecución remota y monitoreo del servidor.
+
+1. Verifica conexión a internet y establece conexión con el broker **MQTT**.
+2. Se suscribe al topico `/action` del servidor correspondiente.
+3. Manejo de acciones:
+   - Escucha comandos en tiempo real.
+   - Ejecuta acciones según la lógica definida en `monitor.py`.
+   - Publica el resultado de la accion en `/action/result`
+4. Inicia un buclue infinito que:
+   1. Obtiene la informacion del hardware y la publica en el subtopico `/state`
+   2. Espera **30 segundos** antes de repetir.
+  
+## Servidores donde esta instalado el server-monitor:
+
+## 🌐 Servidores con `server-monitor` instalado
+
+| Categoría | Grupo / Ubicación | Servidores |
+|----------|------------------|------------|
+| Compulab | - | Server-1, Server-2, Server-3, Server-5, Server-6, Server-7, Mark-PC, Martin-PC |
+| Buques   | - | Huyu 908, Huyu 961, Huyu 962, Hu Shun Yu 06, Hu Shun Yu 07, Hu Shun Yu 08, Puente Valdes |
+| Clientes | San Isidro | Server-1, Server-2, Server-3, Server-4 |
+| Clientes | Bricel | Server-1 |
+| Clientes | Cigalfer | Server-1 |
+| Clientes | RV Racing | Server-1 |
+| Clientes | Hydra | Server-1 |
+| Clientes | Holas | Server-1 |
+| Clientes | Greciamar | Server-1 |
+| Clientes | Santhor | Server-1, Server-2 |
+| Clientes | La Escalerona | Server-1 |
+| Clientes | Altamare | Server-1 |
+| Clientes | Ecoprom | Server-1 |
+| Clientes | Seafresh | Server-1 |
+| Clientes | Colorshop | Server-1 |
+| Clientes | Fabri | Server-1, Server-2 |
 
 # Guia de Instalacion - Sistema de Monitoreo de Servidor
 
