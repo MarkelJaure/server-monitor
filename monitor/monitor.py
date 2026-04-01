@@ -19,11 +19,15 @@ LOG_FILE = os.path.join(BASE_DIR, "server-monitor.log")
 
 
 logging.basicConfig(
-    filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
 )
+
 
 logger = logging.getLogger()
 # ======= Inicialización segura de LibreHardwareMonitor =======
@@ -126,6 +130,32 @@ def start_vm(payload):
 
     return True, f"VM iniciada: {vm_name}"
 
+DEFAULT_KEEP_LAST_LINES = 100
+def clear_logs(payload):
+    try:
+        if not os.path.exists(LOG_FILE):
+            return False, "El archivo de logs no existe"
+
+        # Obtener cantidad de líneas a conservar desde el payload
+        keep = payload.get("keep", DEFAULT_KEEP_LAST_LINES)
+
+        # Validación básica
+        if not isinstance(keep, int) or keep <= 0:
+            keep = DEFAULT_KEEP_LAST_LINES
+
+        with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+
+        lines_to_keep = lines[-keep:]
+
+        with open(LOG_FILE, "w", encoding="utf-8", errors="replace") as f:
+            f.writelines(lines_to_keep)
+
+        return True, f"Logs limpiados. Se conservaron las últimas {keep} líneas"
+
+    except Exception as e:
+        return False, f"Error al limpiar logs: {str(e)}"
+
 
 ACTION_MAP = {
     "shutdown": {
@@ -143,6 +173,10 @@ ACTION_MAP = {
     "start_vm": {
         "handler": start_vm,
         "message": "Encendido de VM"
+    },
+    "clear_logs": {
+        "handler": clear_logs,
+        "message": "Limpieza de logs"
     }
 }
 
@@ -150,7 +184,7 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         action = payload.get("action", "").lower()
-        print(action)
+
     except Exception:
         publish_action_result(
             "unknown",
@@ -169,6 +203,7 @@ def on_message(client, userdata, msg):
             "error",
             f"Acción no reconocida: {action}"
         )
+        logger.info( f"Acción no reconocida: {action}")
         return
 
     publish_action_result(
@@ -188,12 +223,15 @@ def on_message(client, userdata, msg):
                     "executed",
                     message
                 )
+                logger.info(message)
+
             else:
                 publish_action_result(
                     action,
                     "failed",
                     message
                 )
+                logger.error(message)
 
         # 🔹 Acciones simples (command)
         elif "command" in action_data:
@@ -204,6 +242,8 @@ def on_message(client, userdata, msg):
                 "executed",
                 f"Orden ejecutada: {action}"
             )
+            logger.info(f"Orden ejecutada: {action}")
+
 
         else:
             publish_action_result(
@@ -211,6 +251,7 @@ def on_message(client, userdata, msg):
                 "error",
                 "Acción mal configurada (sin command ni handler)"
             )
+            logger.error("Acción mal configurada (sin command ni handler)")
 
     except Exception as e:
         publish_action_result(
@@ -218,6 +259,7 @@ def on_message(client, userdata, msg):
             "failed",
             f"Error ejecutando acción: {str(e)}"
         )
+        logger.error(f"Error ejecutando acción: {str(e)}")
 
 
 client.on_connect = on_connect
