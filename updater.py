@@ -6,13 +6,13 @@ import sys
 import time
 import os
 import tempfile
-from dotenv import load_dotenv
-from pathlib import Path
 import os
 import paho.mqtt.client as mqtt
 import json
 import logging
 import socket
+
+from monitor.mqtt_config import load_mqtt_config
 
 
 # ===== LOGGER =====
@@ -30,14 +30,13 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 
-ENV_PATH = Path(__file__).parent / "monitor" / ".env"
-load_dotenv(dotenv_path=ENV_PATH)
+try:
+    config = load_mqtt_config()
+except ValueError as exc:
+    logger.error("Configuración MQTT inválida: %s", exc)
+    raise SystemExit(1) from exc
 
-MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-MQTT_TOPIC = os.getenv("MQTT_SERVER") + '/update/state'
-MQTT_USER = os.getenv("MQTT_USER")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
+MQTT_TOPIC = f"{config.topic_prefix}/update/state"
 
 def wait_for_network(timeout=300):
     logger.info("Esperando conectividad de red (updater)...")
@@ -61,7 +60,7 @@ def wait_for_network(timeout=300):
 wait_for_network()
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+client.username_pw_set(config.user, config.password)
 client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -73,7 +72,7 @@ def connect_mqtt():
     while True:
         try:
             logger.info("Intentando conectar a MQTT (updater)...")
-            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            client.connect(config.broker, config.port, 60)
             logger.info("Conectado a MQTT (updater)")
             return
         except Exception as e:

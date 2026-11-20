@@ -43,6 +43,14 @@ Servicio principal encargado de la ejecución remota y monitoreo del servidor.
 4. Inicia un buclue infinito que:
    1. Obtiene la informacion del hardware y la publica en el subtopico `/state`
    2. Espera **30 segundos** antes de repetir.
+
+### Inventario de hardware
+
+El monitor publica un JSON retenido con QoS 1 en `clients/<cliente>/<equipo>/inventory` al conectar o reconectar a MQTT y cada 24 horas mientras siga conectado. Un suscriptor nuevo recibe el último inventario disponible. Para descubrir equipos de un cliente, suscribite a `clients/<cliente>/+/inventory`.
+
+El JSON incluye `schema_version` (actualmente `1`), `timestamp` (Unix en segundos), `client`, `machine_name` y `system.hostname` (el hostname real de Windows). Contiene modelo del equipo, sistema operativo, procesadores, RAM, discos físicos, GPU, placas base y BIOS. Las capacidades están en bytes. Una lista de hardware vale `null` si WMI no pudo leerla y `[]` si pudo leerla pero no encontró dispositivos. Las métricas de rendimiento se pueden asociar por el mismo prefijo MQTT en `/state`.
+
+Si el broker usa permisos por tópico, asegurate de que el monitor pueda publicar en `clients/<cliente>/<equipo>/inventory` y de que el consumidor de inventario tenga permiso de lectura.
   
 ## Servidores donde esta instalado el server-monitor:
 
@@ -112,8 +120,7 @@ python --version
 Instalar las dependencias requeridas:
 
 ```bash
-pip install wmi psutil python-dotenv paho-mqtt requests && pip install --pre pythonnet==3.1.0-rc0
-
+pip install wmi psutil python-dotenv paho-mqtt requests
 ```
 
 ---
@@ -130,7 +137,18 @@ pip install wmi psutil python-dotenv paho-mqtt requests && pip install --pre pyt
 ### 3.2 Configurar Archivos
 
 1. Copiar la carpeta `server-monitor` al **Escritorio**
-2. Abrir el archivo `.env` y modificar `MQTT_SERVER` agregando el nombre del servidor
+2. Configurar `monitor/.env` con los datos de conexión al broker y el prefijo `MQTT_SERVER`. La variable `IS_FINAL_DEVICE` indica si el prefijo ya identifica al equipo.
+
+   | `MQTT_SERVER` | `IS_FINAL_DEVICE` | Prefijo MQTT con hostname `SERVER-01` |
+   | --- | --- | --- |
+   | `clients/san-isidro` | `false` | `clients/san-isidro/SERVER-01` |
+   | `clients/san-isidro/server-1` | `true` | `clients/san-isidro/server-1` |
+   | `clients/san-isidro/server-1` | Omitida | `clients/san-isidro/server-1` |
+
+   Para una instalación masiva, copiá el mismo `.env` con `MQTT_SERVER=clients/<cliente>` e `IS_FINAL_DEVICE=false` a todos los equipos del cliente. El monitor y el updater agregan el hostname de Windows tal como está escrito. Si se omite la variable, el valor predeterminado es `true` y ambos usan `MQTT_SERVER` tal cual.
+
+   Para usar `IS_FINAL_DEVICE=false` en una instalación existente, actualizá también `updater.py` una vez. La actualización automática copia los archivos de `monitor/` y puede dejar archivos de versiones previas en disco.
+
 3. Mover la carpeta `server-monitor` a:
    ```
    C:\Program Files\Python314\Programs\

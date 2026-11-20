@@ -6,12 +6,19 @@ import wmi
 import platform
 import paho.mqtt.client as mqtt
 from datetime import datetime
+from threading import Event, Thread
 import win32api
 import os
-from dotenv import load_dotenv
 import logging
 import subprocess
 import subprocess
+
+if __package__:
+    from .inventory import collect_inventory
+    from .mqtt_config import load_mqtt_config
+else:
+    from inventory import collect_inventory
+    from mqtt_config import load_mqtt_config
 
 # ===== LOGGER =====
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -30,42 +37,21 @@ logging.basicConfig(
 
 
 logger = logging.getLogger()
-# ======= Inicialización segura de LibreHardwareMonitor =======
+
 try:
-    import clr
-    import sys
-    import os
+    config = load_mqtt_config()
+except ValueError as exc:
+    logger.error("Configuración MQTT inválida: %s", exc)
+    raise SystemExit(1) from exc
 
-    dll_path = os.path.abspath(".")
-    sys.path.append(dll_path)
-    clr.AddReference("LibreHardwareMonitorLib")
-
-    from LibreHardwareMonitor.Hardware import Computer
-
-    computer = Computer()
-    computer.IsCpuEnabled = True
-    computer.Open()
-
-    LIB_MONITOR_OK = True  # marca que LibreHardwareMonitor está listo
-except Exception as e:
-    computer = None
-    LIB_MONITOR_OK = False
-
-
-load_dotenv()
-
-# ===== CONFIGURACIÓN =====
-MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
-
-MQTT_USER = os.getenv("MQTT_USER")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
-
-MQTT_STATE_TOPIC = os.getenv("MQTT_SERVER") + '/state'
-MQTT_ACTION_TOPIC = os.getenv("MQTT_SERVER") + '/action'
-MQTT_ACTION_RESULT_TOPIC = os.getenv("MQTT_SERVER") + '/action/result'
+MQTT_STATE_TOPIC = f"{config.topic_prefix}/state"
+MQTT_ACTION_TOPIC = f"{config.topic_prefix}/action"
+MQTT_ACTION_RESULT_TOPIC = f"{config.topic_prefix}/action/result"
+MQTT_INVENTORY_TOPIC = f"{config.topic_prefix}/inventory"
 
 PUBLISH_INTERVAL = 30
+INVENTORY_INTERVAL = 24 * 60 * 60
+inventory_requested = Event()
 
 
 def wait_for_network(timeout=300):
@@ -91,19 +77,50 @@ wait_for_network()
 
 # ===== MQTT =====
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
+client.username_pw_set(config.user, config.password)
 client.reconnect_delay_set(min_delay=1, max_delay=60)
 
 def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code.is_failure:
+        logger.warning("Conexión MQTT rechazada (monitor): %s", reason_code)
+        return
+
     logger.info(f"MQTT monitor conectado. reason_code={reason_code}")
     client.subscribe(MQTT_ACTION_TOPIC)
     logger.info(f"Suscrito al topico MQTT: {MQTT_ACTION_TOPIC}")
+    inventory_requested.set()
 
     publish_action_result(
         'connection',
         "connected",
         f"Servidor MQTT Conectado"
     )
+
+
+def publish_inventory():
+    while True:
+        inventory_requested.wait(timeout=INVENTORY_INTERVAL)
+        inventory_requested.clear()
+        if not client.is_connected():
+            continue
+
+        try:
+            payload = collect_inventory(config.client_name, config.machine_name)
+            result = client.publish(
+                MQTT_INVENTORY_TOPIC, json.dumps(payload), qos=1, retain=True
+            )
+            if result.rc != mqtt.MQTT_ERR_SUCCESS:
+                logger.warning("No se pudo enviar el inventario MQTT: %s", result.rc)
+                continue
+
+            result.wait_for_publish(timeout=10)
+            if result.is_published():
+                logger.info("Inventario publicado en %s", MQTT_INVENTORY_TOPIC)
+            else:
+                logger.warning("Sin confirmación MQTT para %s", MQTT_INVENTORY_TOPIC)
+        except Exception:
+            logger.exception("Error publicando inventario")
+
 
 def publish_action_result(action, status, message):
     payload = {
@@ -269,7 +286,7 @@ def connect_mqtt():
     while True:
         try:
             logger.info("Intentando conectar a MQTT (monitor)...")
-            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            client.connect(config.broker, config.port, 60)
             logger.info("Conectado a MQTT (monitor)")
             return
         except Exception as e:
@@ -278,38 +295,7 @@ def connect_mqtt():
 
 connect_mqtt()
 client.loop_start()
-
-w = wmi.WMI(namespace="root\\wmi")
-
-def update_hardware(hw):
-    try:
-        hw.Update()
-        for sub in hw.SubHardware:
-            update_hardware(sub)
-    except:
-        pass  # ignorar errores de hardware
-
-def get_cpu_temperature():
-    if not LIB_MONITOR_OK or computer is None:
-        return None  # si pythonnet o DLL no funcionan
-
-    try:
-        for hardware in computer.Hardware:
-            update_hardware(hardware)
-
-            if hardware.HardwareType.ToString() == "Cpu":
-                for sensor in hardware.Sensors:
-                    if (
-                        sensor.SensorType.ToString() == "Temperature"
-                        and "Package" in sensor.Name
-                        and sensor.Value is not None
-                    ):
-                        return sensor.Value
-    except Exception as e:
-        return None
-
-    return None  # si no encuentra sensor
-
+Thread(target=publish_inventory, name="mqtt-inventory", daemon=True).start()
 
 
 def get_ip():
@@ -328,9 +314,7 @@ STATE_MAP = {
 def get_hyperv_vms():
     vms_info = []
 
-    SKIP_VMS = os.getenv("SKIP_VMS", "false").lower() == "true"
-
-    if SKIP_VMS:
+    if config.skip_vms:
         return vms_info
 
     try:
@@ -415,8 +399,6 @@ def get_disks_info():
 
 while True:
     try:
-        cpu_temp = get_cpu_temperature()
-
         mem = psutil.virtual_memory()
         net = psutil.net_io_counters()
 
@@ -432,7 +414,6 @@ while True:
                 "usage_percent": psutil.cpu_percent(),
                 "freq_mhz": psutil.cpu_freq().current if psutil.cpu_freq() else None,
                 "cores": psutil.cpu_count(),
-                "temperature": cpu_temp,
             },
             "memory": {
                 "used_percent": mem.percent,
