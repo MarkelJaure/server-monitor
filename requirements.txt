@@ -1,4 +1,7 @@
+packaging
+paho-mqtt>=2
 psutil
-wmi
-paho-mqtt
 python-dotenv
+pywin32
+requests
+wmi

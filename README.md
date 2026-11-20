@@ -21,15 +21,10 @@ Server Monitor es una herramienta diseñada en python para funcionar en segundo 
 Servicio encargado de mantener el sistema actualizado automáticamente.
 
 1. Verifica conexión a internet y establece conexión con el broker **MQTT**.
-3. Inicia un bucle infinito que:
-   1. Ejecuta `monitor.py`.
-   2. Consulta la versión local del `server-monitor`.
-   3. Compara contra la última versión disponible en el repositorio.
-   4. Si la versión remota es superior:
-      - Descarga y actualiza los archivos locales.
-      - Reinicia el `monitor.py`.
-   5. Se publica el estado de la version en `/update/state` 
-   6. Espera **10 minutos** antes de repetir el ciclo.
+2. Ejecuta `monitor.py`.
+3. Consulta cada **60 minutos** la última versión publicada en GitHub y la compara con la instalada. La comparación acepta tags con prefijo `v`.
+4. Si la versión publicada es superior, descarga los archivos de `monitor/` y reinicia el monitor.
+5. Publica el estado en `/update/state`.
 
 ### Monitor:
 Servicio principal encargado de la ejecución remota y monitoreo del servidor.
@@ -49,6 +44,8 @@ Servicio principal encargado de la ejecución remota y monitoreo del servidor.
 El monitor publica un JSON retenido con QoS 1 en `clients/<cliente>/<equipo>/inventory` al conectar o reconectar a MQTT y cada 24 horas mientras siga conectado. Un suscriptor nuevo recibe el último inventario disponible. Para descubrir equipos de un cliente, suscribite a `clients/<cliente>/+/inventory`.
 
 El JSON incluye `schema_version` (actualmente `1`), `timestamp` (Unix en segundos), `client`, `machine_name` y `system.hostname` (el hostname real de Windows). Contiene modelo del equipo, sistema operativo, procesadores, RAM, discos físicos, GPU, placas base y BIOS. Las capacidades están en bytes. Una lista de hardware vale `null` si WMI no pudo leerla y `[]` si pudo leerla pero no encontró dispositivos. Las métricas de rendimiento se pueden asociar por el mismo prefijo MQTT en `/state`.
+
+Cada módulo de RAM incluye `memory_type` (por ejemplo, `DDR4`, `DDR5` o `LPDDR5`). Cada disco incluye `disk_type` (`SSD` o `HDD`). El tipo vale `null` si Windows no proporciona datos suficientes para identificarlo.
 
 Si el broker usa permisos por tópico, asegurate de que el monitor pueda publicar en `clients/<cliente>/<equipo>/inventory` y de que el consumidor de inventario tenga permiso de lectura.
   
@@ -120,7 +117,7 @@ python --version
 Instalar las dependencias requeridas:
 
 ```bash
-pip install wmi psutil python-dotenv paho-mqtt requests
+python -m pip install -r requirements.txt
 ```
 
 ---

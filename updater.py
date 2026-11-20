@@ -8,6 +8,7 @@ import os
 import tempfile
 import os
 import paho.mqtt.client as mqtt
+from packaging.version import Version
 import json
 import logging
 import socket
@@ -193,7 +194,7 @@ if __name__ == "__main__":
 
         try:
             remote, zip_url = get_remote_release()
-            if remote != local:
+            if Version(remote) > Version(local):
 
                 publish_updater_status(
                     status="update_available",
@@ -224,8 +225,8 @@ if __name__ == "__main__":
             else:
                 publish_updater_status(
                     status="success",
-                    message="Ultima version",
-                    current_version=remote
+                    message="No hay una versión publicada más reciente",
+                    current_version=local
                 )
 
         except Exception as e:
