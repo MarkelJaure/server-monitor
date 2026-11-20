@@ -105,7 +105,7 @@ def publish_updater_status(
 
 
 REPO_API = "https://api.github.com/repos/MarkelJaure/server-monitor/releases/latest"
-CHECK_INTERVAL = 600  # segundos
+CHECK_INTERVAL = 3600  # segundos
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MONITOR_DIR = os.path.join(BASE_DIR, "monitor")
