@@ -9,34 +9,22 @@ from datetime import datetime
 from threading import Event, Thread
 import win32api
 import os
-import logging
 import subprocess
 import subprocess
 
 if __package__:
     from .inventory import collect_inventory
-    from .mqtt_config import load_mqtt_config
+    from .logging_config import configure_logging
+    from .mqtt_config import ENV_PATH, load_mqtt_config
 else:
     from inventory import collect_inventory
-    from mqtt_config import load_mqtt_config
+    from logging_config import configure_logging
+    from mqtt_config import ENV_PATH, load_mqtt_config
 
 # ===== LOGGER =====
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE = os.path.join(BASE_DIR, "server-monitor.log")
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
-)
-
-
-logger = logging.getLogger()
+LOG_FILE = os.path.join(BASE_DIR, "monitor.log")
+logger, log_handler = configure_logging(ENV_PATH, LOG_FILE, console=True)
 
 try:
     config = load_mqtt_config()
@@ -139,12 +127,12 @@ def publish_action_result(action, status, message):
 
 
 def start_vm(payload):
-    print(payload)
     vm_name = payload.get("vm")
 
     if not vm_name:
         return False, "Falta parámetro 'vm'"
 
+    logger.debug("Solicitud de inicio de VM: %s", vm_name)
     command = f'powershell -ExecutionPolicy Bypass -Command "Start-VM -Name \'{vm_name}\'"'
 
     subprocess.run(command, shell=True, check=True)
@@ -154,9 +142,6 @@ def start_vm(payload):
 DEFAULT_KEEP_LAST_LINES = 100
 def clear_logs(payload):
     try:
-        if not os.path.exists(LOG_FILE):
-            return False, "El archivo de logs no existe"
-
         # Obtener cantidad de líneas a conservar desde el payload
         keep = payload.get("keep", DEFAULT_KEEP_LAST_LINES)
 
@@ -164,16 +149,17 @@ def clear_logs(payload):
         if not isinstance(keep, int) or keep <= 0:
             keep = DEFAULT_KEEP_LAST_LINES
 
-        with open(LOG_FILE, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-
-        lines_to_keep = lines[-keep:]
-
-        with open(LOG_FILE, "w", encoding="utf-8", errors="replace") as f:
-            f.writelines(lines_to_keep)
+        with log_handler.lock:
+            with open(LOG_FILE, "r+", encoding="utf-8", errors="replace") as f:
+                lines_to_keep = f.readlines()[-keep:]
+                f.seek(0)
+                f.writelines(lines_to_keep)
+                f.truncate()
 
         return True, f"Logs limpiados. Se conservaron las últimas {keep} líneas"
 
+    except FileNotFoundError:
+        return False, "El archivo de logs no existe"
     except Exception as e:
         return False, f"Error al limpiar logs: {str(e)}"
 
@@ -292,9 +278,8 @@ client.on_message = on_message
 def connect_mqtt():
     while True:
         try:
-            logger.info("Intentando conectar a MQTT (monitor)...")
+            logger.debug("Intentando conectar a MQTT (monitor)...")
             client.connect(config.broker, config.port, 60)
-            logger.info("Conectado a MQTT (monitor)")
             return
         except Exception as e:
             logger.warning(f"MQTT monitor no disponible, reintentando en 10s: {e}")
@@ -433,8 +418,8 @@ while True:
             "disks": get_disks_info()
         }
 
-        logger.info(f"Estado publicado en {MQTT_STATE_TOPIC}")
-        client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
+        result = client.publish(MQTT_STATE_TOPIC, json.dumps(payload), retain=True)
+        logger.debug("Publicación de estado en %s: %s", MQTT_STATE_TOPIC, mqtt.error_string(result.rc))
     except Exception as e:
         logger.exception("Error en ciclo principal")
     time.sleep(PUBLISH_INTERVAL)

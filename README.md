@@ -11,11 +11,18 @@ Server Monitor es una herramienta diseñada en python para funcionar en segundo 
 ## Funcionalidades
 
 ### 🧾 Logging
-- Registro de acciones relevantes tanto del **Updater** como del **Monitor**.
-- Los logs se almacenan en:
-  - `server-monitor.log`
-  - Carpeta `/monitor`
-- Permite trazabilidad de eventos, errores y ejecuciones automáticas.
+
+Configurá los logs en `monitor/.env` y reiniciá el updater y el monitor para aplicar los cambios.
+
+| Variable | Valor predeterminado | Comportamiento |
+| --- | --- | --- |
+| `LOG_LEVEL` | `DEBUG` | Usá `INFO` en PCs para registrar conexiones, inventario, acciones, actualizaciones y problemas. `DEBUG` agrega el detalle de cada publicación de estado. También se admiten `WARNING`, `ERROR` y `CRITICAL`. |
+| `LOG_MAX_MB` | `5` | Tamaño aproximado en MiB antes de rotar cada archivo. Con `0` el archivo sigue creciendo sin rotar. |
+| `LOG_BACKUP_COUNT` | `3` | Cantidad de archivos rotados por proceso. Acepta enteros a partir de `1`. |
+
+Los archivos activos son `monitor/monitor.log` y `monitor/updater.log`. Cada proceso rota su propio archivo a `.1`, `.2`, etc. El archivo combinado anterior `monitor/server-monitor.log` queda como historial. La acción `clear_logs` conserva las últimas líneas del log activo del monitor.
+
+La plantilla usa `LOG_LEVEL=INFO`. En PCs sin VMs de Hyper-V, podés usar `SKIP_VMS=true` para omitir esas consultas. Para aplicar la rotación también al updater en una instalación existente, distribuí el `updater.py` nuevo junto con `monitor/logging_config.py`. La actualización automática solo copia `monitor/`.
 
 ### Updater
 Servicio encargado de mantener el sistema actualizado automáticamente.

@@ -9,7 +9,7 @@ import pythoncom
 import wmi
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("server_monitor.inventory")
 
 SMBIOS_DDR_TYPES = {
     0x12: "DDR",

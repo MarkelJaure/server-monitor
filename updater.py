@@ -11,27 +11,16 @@ import os
 import paho.mqtt.client as mqtt
 from packaging.version import Version
 import json
-import logging
 import socket
 
 from dotenv import dotenv_values
 
+from monitor.logging_config import configure_logging
 from monitor.mqtt_config import ENV_PATH, load_mqtt_config
 
 
 # ===== LOGGER =====
-BASE_LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "monitor")
-LOG_FILE = os.path.join(BASE_LOG_DIR, "server-monitor.log")
-
-
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-logger = logging.getLogger()
+logger, _ = configure_logging(ENV_PATH, ENV_PATH.with_name("updater.log"))
 
 
 try:
@@ -75,9 +64,8 @@ client.on_connect = on_connect
 def connect_mqtt():
     while True:
         try:
-            logger.info("Intentando conectar a MQTT (updater)...")
+            logger.debug("Intentando conectar a MQTT (updater)...")
             client.connect(config.broker, config.port, 60)
-            logger.info("Conectado a MQTT (updater)")
             return
         except Exception as e:
             logger.warning(f"MQTT updater no disponible, reintentando en 10s: {e}")
@@ -200,6 +188,7 @@ if __name__ == "__main__":
 
     while True:
         check_interval = random.randint(MIN_CHECK_INTERVAL, MAX_CHECK_INTERVAL)
+        logger.debug("Próxima consulta de actualizaciones en %s segundos", check_interval)
         time.sleep(check_interval)
         local = get_local_version()
 
