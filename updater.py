@@ -14,7 +14,9 @@ import json
 import logging
 import socket
 
-from monitor.mqtt_config import load_mqtt_config
+from dotenv import dotenv_values
+
+from monitor.mqtt_config import ENV_PATH, load_mqtt_config
 
 
 # ===== LOGGER =====
@@ -106,7 +108,7 @@ def publish_updater_status(
     )
 
 
-REPO_API = "https://api.github.com/repos/MarkelJaure/server-monitor/releases/latest"
+UPDATE_BASE_URL = "https://updates.compulab.com.ar/server-monitor"
 MIN_CHECK_INTERVAL = 60 * 60  # segundos
 MAX_CHECK_INTERVAL = 2 * 60 * 60
 
@@ -127,7 +129,13 @@ def get_local_version():
 
 
 def get_remote_release():
-    r = requests.get(REPO_API, timeout=10)
+    settings = dotenv_values(ENV_PATH, encoding="utf-8-sig")
+    channel = (settings.get("UPDATE_CHANNEL") or "").strip().lower() or "stable"
+    if channel not in ("stable", "preview"):
+        raise ValueError("UPDATE_CHANNEL debe ser stable o preview")
+
+    manifest_url = f"{UPDATE_BASE_URL}/{channel}/latest.json"
+    r = requests.get(manifest_url, timeout=10)
     r.raise_for_status()
     data = r.json()
     return data["tag_name"], data["zipball_url"]
