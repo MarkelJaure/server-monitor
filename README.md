@@ -136,7 +136,7 @@ python -m pip install -r requirements.txt
 ### 3.2 Configurar Archivos
 
 1. Copiar la carpeta `server-monitor` al **Escritorio**
-2. Configurar `monitor/.env` con los datos de conexión al broker y el prefijo `MQTT_SERVER`. La variable `IS_FINAL_DEVICE` indica si el prefijo ya identifica al equipo.
+2. Para una instalación nueva, copiar [`monitor/.env.example`](monitor/.env.example) como `monitor/.env` y completar los datos de conexión al broker y el prefijo `MQTT_SERVER`. La variable `IS_FINAL_DEVICE` indica si el prefijo ya identifica al equipo.
 
    | `MQTT_SERVER` | `IS_FINAL_DEVICE` | Prefijo MQTT con hostname `SERVER-01` |
    | --- | --- | --- |
