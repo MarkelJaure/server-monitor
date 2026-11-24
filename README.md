@@ -32,7 +32,7 @@ En `monitor/.env`, `UPDATE_CHANNEL=stable` usa la última versión estable y es 
 Servicio principal encargado de la ejecución remota y monitoreo del servidor.
 
 1. Verifica conexión a internet y establece conexión con el broker **MQTT**.
-2. Se suscribe al topico `/action` del servidor correspondiente.
+2. Se suscribe al tópico `/action` si `ALLOW_ACTIONS` está habilitada. El valor predeterminado es `true` para las instalaciones que omiten la variable.
 3. Manejo de acciones:
    - Escucha comandos en tiempo real.
    - Ejecuta acciones según la lógica definida en `monitor.py`.
@@ -145,6 +145,8 @@ python -m pip install -r requirements.txt
    | `clients/san-isidro/server-1` | Omitida | `clients/san-isidro/server-1` |
 
    Para una instalación masiva, copiá el mismo `.env` con `MQTT_SERVER=clients/<cliente>` e `IS_FINAL_DEVICE=false` a todos los equipos del cliente. El monitor y el updater agregan el hostname de Windows tal como está escrito. Si se omite la variable, el valor predeterminado es `true` y ambos usan `MQTT_SERVER` tal cual.
+
+   Para una PC que solo publica métricas e inventario, configurá `ALLOW_ACTIONS=false` en `monitor/.env` y reiniciá el monitor para aplicar el cambio.
 
    Para usar `IS_FINAL_DEVICE=false` en una instalación existente, actualizá también `updater.py` una vez. La actualización automática copia los archivos de `monitor/` y puede dejar archivos de versiones previas en disco.
 

@@ -86,8 +86,12 @@ def on_connect(client, userdata, flags, reason_code, properties):
         return
 
     logger.info(f"MQTT monitor conectado. reason_code={reason_code}")
-    client.subscribe(MQTT_ACTION_TOPIC)
-    logger.info(f"Suscrito al topico MQTT: {MQTT_ACTION_TOPIC}")
+    if config.allow_actions:
+        client.subscribe(MQTT_ACTION_TOPIC)
+        logger.info(f"Suscrito al topico MQTT: {MQTT_ACTION_TOPIC}")
+    else:
+        logger.info("Acciones remotas por MQTT deshabilitadas")
+
     inventory_requested.set()
 
     publish_action_result(
@@ -198,6 +202,9 @@ ACTION_MAP = {
 }
 
 def on_message(client, userdata, msg):
+    if not config.allow_actions:
+        return
+
     try:
         payload = json.loads(msg.payload.decode())
         action = payload.get("action", "").lower()

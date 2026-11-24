@@ -22,6 +22,7 @@ class MQTTConfig:
     machine_name: str
     topic_prefix: str
     skip_vms: bool
+    allow_actions: bool = True
 
 
 def load_mqtt_config():
@@ -33,6 +34,10 @@ def load_mqtt_config():
     is_final = (file_values.get("IS_FINAL_DEVICE", "true") or "").strip().lower()
     if is_final not in ("true", "false"):
         raise ValueError("IS_FINAL_DEVICE debe ser true o false")
+
+    allow_actions = (file_values.get("ALLOW_ACTIONS", "true") or "").strip().lower()
+    if allow_actions not in ("true", "false"):
+        raise ValueError("ALLOW_ACTIONS debe ser true o false")
 
     if is_final == "true":
         topic_prefix = server
@@ -66,4 +71,5 @@ def load_mqtt_config():
         machine_name=machine_name,
         topic_prefix=topic_prefix,
         skip_vms=settings.get("SKIP_VMS", "false").lower() == "true",
+        allow_actions=allow_actions == "true",
     )
