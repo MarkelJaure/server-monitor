@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import time
+import random
 import os
 import tempfile
 import os
@@ -106,7 +107,8 @@ def publish_updater_status(
 
 
 REPO_API = "https://api.github.com/repos/MarkelJaure/server-monitor/releases/latest"
-CHECK_INTERVAL = 3600  # segundos
+MIN_CHECK_INTERVAL = 60 * 60  # segundos
+MAX_CHECK_INTERVAL = 2 * 60 * 60
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MONITOR_DIR = os.path.join(BASE_DIR, "monitor")
@@ -189,7 +191,8 @@ if __name__ == "__main__":
     monitor = start_monitor()
 
     while True:
-        time.sleep(CHECK_INTERVAL)
+        check_interval = random.randint(MIN_CHECK_INTERVAL, MAX_CHECK_INTERVAL)
+        time.sleep(check_interval)
         local = get_local_version()
 
         try:

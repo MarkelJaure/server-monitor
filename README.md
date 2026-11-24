@@ -22,7 +22,7 @@ Servicio encargado de mantener el sistema actualizado automáticamente.
 
 1. Verifica conexión a internet y establece conexión con el broker **MQTT**.
 2. Ejecuta `monitor.py`.
-3. Consulta cada **60 minutos** la última versión publicada en GitHub y la compara con la instalada. La comparación acepta tags con prefijo `v`.
+3. Antes de cada consulta, incluida la primera, espera un intervalo aleatorio de **60 a 120 minutos**. Consulta la última versión publicada en GitHub y la compara con la instalada. La comparación acepta tags con prefijo `v`.
 4. Si la versión publicada es superior, descarga los archivos de `monitor/` y reinicia el monitor.
 5. Publica el estado en `/update/state`.
 
